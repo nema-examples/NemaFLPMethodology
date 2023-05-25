@@ -1,0 +1,183 @@
+\documentclass[hidelinks,twoside,10pt,letterpaper]{../note}
+
+\bibliographystyle{siam}
+% \usepackage{../nema}
+\usepackage{/Users/mopg/Documents/work/nema/code-extensions/nema-latex-package/src/nema}
+\begin{document}
+
+\title{Methodology for Solving {Facility Location Problems}}
+
+\author{Max Opgenoord}
+\date{\today}
+
+\makeatletter
+\let\newtitle\@title
+\makeatother
+
+\maketitle
+
+\pagestyle{mainmatter}
+\thispagestyle{empty}
+
+{\bfseries\noindent
+The problem of determining where our new distribution centers should be located is a version of the Facility Location Problem, a well-researched problem within the operations research community.
+The problem is modeled as a mixed integer linear program
+to the fundamental problem structure.
+This paper describes the particular mathematical formulation used to solve such FLP problems within our organization.
+The example shown in this paper highlights the effectiveness of the approach.
+}
+
+\section{Introduction}
+Outdoor Logistics, Inc. is growing fast and our current distribution network is no longer adequate, see \NemaCite{a2fb11eefb13642f}.
+The research science team has been tasked with mapping out a new strategy for our distribution network.
+As part of this effort, we have developed an algorithm to solve facility location problems (FLPs).
+This paper describes our approach in detail.
+
+Facility location problems are a class of optimization problems that are widely encountered in various fields such as logistics, resource allocation, and urban planning \cite{farahani2009facility}.
+These problems involve determining the optimal placement of facilities to serve a set of demand points, subject to various constraints and cost objectives.
+The goal is to find a solution that minimizes the total cost, which may include factors such as transportation costs, capacity constraints, and site selection criteria.
+
+Over the years, various mathematical models and algorithms have been proposed to solve facility location problems, including linear programming, integer programming, heuristics, and metaheuristics.
+However, the complex nature of these problems often requires the use of multiple methods to achieve satisfactory solutions.
+For example, mathematical programming models may provide optimal solutions but can be computationally intractable for large-scale problems, while heuristics can be fast but may not find the optimal solution.
+
+Lucky for us, as a relatively new company, our logistics network is still fairly small and finding a globally-optimal solution is computationally tractable.
+Our approach involves formulating the problem as a mixed integer linear program.
+
+In the following sections, we describe our approach in detail and solve a small example problem to demonstrate the approach.
+
+\section{Methodology}
+
+The overall goal here is to minimize costs for our network expansion, while meeting customer demand over several years.
+We have projections available for customer demand in our most important cities for the next few years.
+The outcome of the optimization problem is a plan for what facilities to open in what years and what the capacity of those facilities should be.
+
+Specifically, the costs to minimize are: (1) transportation costs between facility location ($j$) and customer hub ($k$) for each year ($i$), representated as $C_{t,ijk}$, (2) operating costs for each facility ($C_{o,ij}$), (3) start-up costs ($C_{u,ij}$) and wind-down costs ($C_{d,ij}$).
+Mathematically, this is represented as:
+\begin{subequations}\label{eq:flp_optimization}
+\begin{align}
+    \min_{A_{ij}, \ V_{ij}, K_{ijk}, C_{u,ij}, C_{d,ij}} \quad \sum_{ijk} C_{t,ijk} & + \sum_{ij} \left(C_{o,ij}  + C_{u,ij} + C_{d,ij}\right)  \hspace{-3in}&&  \\
+    \textrm{subject to} \quad  \sum_j K_{ijk} &= D_{ik} \quad && \forall i,k \label{eq:opt:customer-demand}\\
+    \sum_k K_{ijk} &= V_{ij} && \forall k \label{eq:opt:network-demand}\\
+    V_{ij} &\leq A_{ij} V_{j,\max} && \forall i,j \label{eq:opt:max-capacity}\\
+    C_{u,ij} &\geq f_{u,j} \left (A_{i^+j} - A_{ij}\right )  && \forall i,j \label{eq:opt:start-up}\\
+    C_{d,ij} &\geq f_{d,j} \left (A_{ij} - A_{i^+j}\right )  && \forall i,j \label{eq:opt:wind-down}\\
+    C_{t,ijk} &= K_{ijk} f_{t,j} S_{jk} \quad && \forall i,j,k  \label{eq:opt:transportation_cost}\\
+    C_{o,ij} &= A_{ij} f_{o,j} \quad && \forall i,j \label{eq:opt:operating-cost}\\
+    V_{ij} &\geq 0 \\
+    K_{ijk} &\geq 0 \\
+    C_{d,ij}, C_{u,ij} &\geq 0 \\
+    A_{ij} &\in \left\{0,1\right\}
+  \end{align}
+\end{subequations}
+where $A_{ij}$ indicates whether facility $j$ is active in year $j$, $V_{ij}$ is the volume served by facility $j$ in year $i$, $K_{ijk}$ is the volume served by facility $j$ for customer $k$ in year $j$.
+
+The demand for all customer hubs ($D_{ij}$) needs to be served by our network, which is what the constraint in \cref{eq:opt:customer-demand} represents.
+Our facilities should also be able to meet that volume moving in the network, \cref{eq:opt:network-demand}.
+The volume in each facility has be 0 if the facility is not active, or below the facility's maximum capacity, \cref{eq:opt:max-capacity}.
+Start-up and wind-down costs only need to be paid when the facility's status (active/inactive) changes between years, \cref{eq:opt:start-up,eq:opt:wind-down}.
+The transportation costs depend on the volume moving along each leg of the network ($K_{ijk}$), the cost of transporting a single package per mile, $f_{t,j}$ (which varies geographically), and the distance between facility and customer hub ($S_{jk}$), \cref{eq:opt:transportation_cost}.
+Finally, the operating cost of a facility are fixed per facility ($f_{o,j}$), but obviously depend on whether or not the facility is active, \cref{eq:opt:operating-cost}.
+
+
+Note that in our analysis, net-present value (NPV) is taken into account.
+This is not highlighted in \cref{eq:flp_optimization} to simplify the mathematical representation here.
+However, the NPV terms are trivial to add to \cref{eq:flp_optimization}.
+
+Finally, the start-up and wind-down costs in the first year are dependent on whether or not the facility is currently operating.
+This is not shown in \cref{eq:flp_optimization} for ease of representation, but trivial to add.
+
+\section{Example Problem}
+
+As an example, we look at solving a small facility location problem with 9 customers and 5 facility locations, over a 5 year time span.
+Information about the facilities  is listed in \cref{tab:facility}.
+Note that the Seattle and Denver location are already in operation.
+
+\begin{table}[h]
+\caption{Facility information used in example.}\label{tab:facility}
+\Nemapgfplotstabletypeset[
+    col sep=comma,
+    every head row/.style={before row=\toprule,after row=\midrule},
+    every last row/.style={after row=\bottomrule},
+    columns/name/.style={%
+      column name=Location,
+      column type={l},
+      string type%
+    },
+    columns/max_yearly_capacity_k_packages/.style={%
+      column name=Yearly capacity,
+      preproc/expr={1000*##1},
+      fixed, dec sep align%
+    },
+    columns/yearly_operating_cost_k_USD/.style={%
+      column name=Yearly operating cost (k\$),
+      fixed, dec sep align%
+    },
+    columns={name,max_yearly_capacity_k_packages,yearly_operating_cost_k_USD}
+]{paper-example-facilities-info}
+\end{table}
+
+The customer demand information is shown in \cref{tab:customer_demand}.
+
+
+\begin{table}[h]
+  \caption{Customer demand assumed for example, the data between 2025 and 2027 is ommitted from this table.}\label{tab:customer_demand}
+\Nemapgfplotstabletypeset[
+    col sep=comma,
+    every head row/.style={before row=\toprule,after row=\midrule},
+    every last row/.style={after row=\bottomrule},
+    columns/name/.style={%
+      column name=Location,
+      column type={l},
+      string type%
+    },
+    columns/package_demand_k_packages_2024/.style={%
+      column name=Demand 2024,
+      preproc/expr={1000*##1},
+      fixed, dec sep align%
+    },
+    columns/package_demand_k_packages_2028/.style={%
+      column name=Demand 2028,
+      preproc/expr={1000*##1},
+      fixed, dec sep align%
+    },
+    columns={name,package_demand_k_packages_2024,package_demand_k_packages_2028}
+]{paper-example-customer-demand}
+\end{table}
+
+The final results are shown in \cref{tab:facility_results}.
+Of note here is that even though the Seattle and Denver locations have enough capacity to handle all 2024 orders, it is still more optimal to already open a Chicago facility to handle East Coast orders.
+
+\begin{table}[h]
+  \caption{Used capacity per facility for the years 2024 and 2028. For brevity, the results between 2025 and 2027 are ommitted from this table.}\label{tab:facility_results}
+\Nemapgfplotstabletypeset[
+    col sep=comma,
+    every head row/.style={before row=\toprule,after row=\midrule},
+    every last row/.style={after row=\bottomrule},
+    columns/name/.style={%
+      column name=Location,
+      column type={l},
+      string type%
+    },
+    columns/used_capacity_2024/.style={%
+      column name=Used Capacity 2024,
+      fixed, dec sep align%
+    },
+    columns/used_capacity_2028/.style={%
+      column name=Used Capacity 2028,
+      fixed, dec sep align%
+    },
+    columns={name,used_capacity_2024,used_capacity_2028}
+]{paper-example-facility-capacity-result}
+\end{table}
+
+\section{Conclusion}
+
+This paper has laid out the underlying methodology for solving facility location problems at Outdoor Logistics.
+The approach uses mixed integer linear programs to solve globally optimal FLPs with a fast turn-around time.
+We take a multi-year approach and the outcome is a strategic plan for where the build facilities and where to shut facilities down.
+This approach will help Outdoor Logistics save substantially on building out a new logistics network while not impacting our customer promises.
+
+\bibliography{bibliography.bib}
+
+\end{document}

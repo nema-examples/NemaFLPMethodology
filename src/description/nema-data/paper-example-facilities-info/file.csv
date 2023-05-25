@@ -1,0 +1,6 @@
+name,latitude,longitude,max_yearly_capacity_k_packages,yearly_operating_cost_k_USD,startup_cost_k_USD,cost_shutdown_k_USD,local_transportation_cost_USD_per_package_per_km,is_in_operation
+Chicago,41.8781,87.6298,500,350,275,135,0.0007452,No
+Miami,25.7617,80.1918,600,400,300,140,0.0009749,No
+Los Angeles,34.0522,118.2437,800,500,350,140,0.0011483,No
+Denver,39.7392,104.9903,400,250,225,80,0.0004325,Yes
+Seattle,47.6062,122.3321,500,300,275,120,0.0006732,Yes

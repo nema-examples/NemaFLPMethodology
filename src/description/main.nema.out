@@ -1,0 +1,4 @@
+\addNemaLink{https://demo.nema.dev}
+\addNemaFigure{paper-example-facilities-info}{nema-data/paper-example-facilities-info/file.csv}
+\addNemaFigure{paper-example-customer-demand}{nema-data/paper-example-customer-demand/file.csv}
+\addNemaFigure{paper-example-facility-capacity-result}{nema-data/paper-example-facility-capacity-result/file.csv}
